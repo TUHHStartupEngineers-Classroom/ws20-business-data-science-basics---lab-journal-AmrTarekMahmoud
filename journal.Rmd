@@ -206,6 +206,7 @@ saveRDS(bike_tableout,"Task2_table.rds")
 ```
 
 # Data Wrangling 
+## Patents analysis
 ```{r}
 #Patents analysis ----
 # Importing data: ---- 
