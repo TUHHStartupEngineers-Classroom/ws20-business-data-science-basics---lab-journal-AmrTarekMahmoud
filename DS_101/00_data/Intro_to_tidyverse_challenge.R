@@ -139,6 +139,15 @@ theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
 
 # 7.1 Excel ----
 
+
+
+
+
+
+
+
+
+
 library("writexl")
 sales_by_state_year_tbl %>%
   write_xlsx("DS_101/00_data/01_bike_sales/02_wrangled_data/bike_orderlines.xlsx")

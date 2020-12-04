@@ -15,7 +15,7 @@ rmarkdown::render_site(encoding = 'UTF-8')
 ###### THIS WILL ONLY WORK IF YOU HAVE STATICRYPT INSTALLED VIA NPM ######
 ##########################################################################
 
-system( paste0("staticrypt ./docs/journal.html ", Sys.getenv("Password")) )
+system( paste0("staticrypt ./docs/journal.html ", Sys.getenv("Your-token")) )
 
 # Remove and rename resulting files
 file.remove("./docs/journal.html")
