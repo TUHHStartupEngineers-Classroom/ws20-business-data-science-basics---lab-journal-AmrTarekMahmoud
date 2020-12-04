@@ -15,7 +15,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 ```
-# Introduction_to_tidyverse
+# Introduction to tidyverse
 ## Libraries
 ```{r}
 library(tidyverse)
@@ -23,8 +23,8 @@ library(readxl)
 library(lubridate)
 library("writexl")
 ```
-# importing data
-## importing data
+##importing data
+### importing data
 ```{r}
 bikes_tbl <- readxl:: read_excel(path = "DS_101/00_data/01_bike_sales/01_raw_data/bikes.xlsx")
 
@@ -32,7 +32,7 @@ orderlines_tbl <- readxl::read_excel("DS_101/00_data/01_bike_sales/01_raw_data/o
 
 bikeshops_tbl  <- readxl::read_excel("DS_101/00_data/01_bike_sales/01_raw_data/bikeshops.xlsx")
 ```
-# Mergring data
+## Mergring data
 ```{r}
 left_join(orderlines_tbl, bikes_tbl, by = c("product.id" = "bike.id"))
 bike_orderlines_joined_tbl <- orderlines_tbl %>%
@@ -40,7 +40,7 @@ bike_orderlines_joined_tbl <- orderlines_tbl %>%
   left_join(bikeshops_tbl, by = c("customer.id" = "bikeshop.id"))
 
 ```
-# Data sorting and binding with other data tables 
+## Data sorting and binding with other data tables 
 ```{r}
 bike_orderlines_wrangled_city_separated_tbl <- bike_orderlines_joined_tbl %>%
   separate(col    = category,
@@ -81,7 +81,7 @@ bike_orderlines_wrangled_city_separated_tbl <- bike_orderlines_joined_tbl %>%
   set_names(names(.) %>% str_replace_all("\\.", "_"))
 
 ```
-# Plotting 
+## Plotting 
 ```{r}
 # 6.2 Sales by Year and State ----
 # Step 1 - Manipulate
@@ -141,7 +141,7 @@ theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   )
 ```
 
-# Writing files 
+## Writing files 
 ```{r}
 library("writexl")
 sales_by_state_year_tbl %>%
@@ -154,5 +154,172 @@ sales_by_state_year_tbl%>%
 # 7.3 RDS ----
 sales_by_state_year_tbl %>% 
   write_rds("DS_101/00_data/01_bike_sales/02_wrangled_data/bike_orderlines.rds")
+```
+
+# Data Acqusition
+## Libraries
+```{r}
+library(RSQLite)
+library(dplyr)
+library(httr)
+library(glue)
+library(jsonlite)
+library(keyring)
+library(rvest)
+library(stringr)
+library(stringi)
+library(purrr)
+library(xopen)
+library(tibble)
+library(curl)
+```
+
+## Get Data via API
+```{r}
+url= "https://api.agify.io?name=bella"
+resp <- GET(url)
+rawToChar(resp$content)
+resp %>% 
+  .$content %>% 
+  rawToChar() %>% 
+  fromJSON()
+
+```
+## Create Database
+```{r}
+get_bike_data <- function(url) {
+  
+  html_bike_category <- read_html(url)
+  
+  # Get the URLs
+  bike_url_tbl  <- html_bike_category %>%
+    html_nodes(css = ".catalog-category-bikes__title-text") %>%
+    html_text()%>%
+    enframe(name = "No.", value = "Bike.Name")
+   bike_database_tbl<-bike_url_tbl%>% mutate(price=html_bike_category%>%html_nodes(css =".catalog-category-bikes__price-title")%>% html_text())
+}
+url= "https://www.rosebikes.de/ebike"
+bike_tableout<-get_bike_data(url)
+saveRDS(bike_tableout,"Task2_table.rds")
+
+
+```
+
+# Data Wrangling 
+# Data Visualization
+## Libraries
+```{r}
+library(tidyverse)
+library(scales)
+library(ggplot2)
+library(lubridate)
+library(ggthemes)
+library(dbplyr)
+
+```
+
+## Map Time cumulative Covid-19 cases
+```{r}
+#importing data
+
+
+covid_data_tbl <- read_csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv")
+
+
+# creating table for chart
+covid_data_modified<-covid_data_tbl%>%
+  select(countriesAndTerritories,cases,day,month,year)%>%
+  relocate(month,day,year)%>%
+  filter(year==2020,month>1)%>%
+  filter(day!=1,countriesAndTerritories=="France" | countriesAndTerritories=="Germany" | countriesAndTerritories=="Spain" | countriesAndTerritories=="United_Kingdom" | countriesAndTerritories=="United_States_of_America")%>%
+  group_by(month,countriesAndTerritories)%>%
+  summarize(total_cases_per_month=sum(cases))%>%
+  ungroup()
+
+#data visualization 
+covid_data_modified%>% ggplot(aes(month, total_cases_per_month, color = countriesAndTerritories))+
+  geom_smooth(method = "loess", span=0.2) +
+  
+  # same as above, with explicit scales
+  scale_y_continuous(labels = scales::dollar_format(scale = 1/1e6, 
+                                                    prefix = "",
+                                                    suffix = "M"))+
+  scale_x_continuous(breaks = seq(2, 11, by = 1), labels = c("Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov"))+
+  geom_label(aes(label=total_cases_per_month), 
+             hjust = "inward",
+             size  = 3,
+             color = RColorBrewer::brewer.pal(n = 11, name = "RdBu")[11])+
+
+  labs(
+    title = "CovID-19 confirmed cases worldwide ",
+    subtitle = "as of 11/02/2020. Europe is not included",
+    caption = "",
+    x = "Year 2020",
+    y = "Cumulative cases(M)",
+    color = "Country" # Legend text
+  )
+
+theme_dark () +
+  theme(
+    title = element_text(face = "bold", color = "#08306B")
+    
+  )
+```
+## Distribution of mourtality rate
+```{r}
+library(maps)
+
+#importing data
+
+
+covid_data_tbl <- read_csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv")
+
+world <- map_data("world")%>%mutate(across(region, str_replace_all, "_", " ")) %>%
+  mutate(region = case_when(
+    
+    region == "UK"~ "United_Kingdom",
+    region == "USA"~"United_States_of_America" ,
+    region == "Czech_Republic"~"Czechia",
+    TRUE ~ region
+    
+  ))
+covid_data_tbl%>%mutate(across(countriesAndTerritories, str_replace_all, "_", " ")) %>%
+  mutate(countriesAndTerritories = case_when(
+    
+    countriesAndTerritories == "United Kingdom" ~ "United_Kingdom",
+    countriesAndTerritories == "United_States_of_America" ~ "United States of America",
+    countriesAndTerritories == "Czechia"~"Czechia",
+    TRUE ~ countriesAndTerritories
+    
+  ))
+
+#manipulation of world data table
+world_map<-world%>%select(region,long,lat,group)%>%rename(countriesAndTerritories=region)
+
+
+#manipulation of covid data table
+covid_modified_data_tbl<- covid_data_tbl%>%select(day,month,year,countriesAndTerritories,deaths,popData2019)%>%
+  group_by(year,countriesAndTerritories,popData2019)%>%
+  summarise(total_death=sum(deaths))%>%
+  ungroup()%>%
+  mutate(mortality_rate=(total_death/popData2019)*100)
+
+#merging data between 2 tables 
+All_data_tbl<-left_join(covid_modified_data_tbl,world_map,by="countriesAndTerritories")%>%filter(year==2020)
+
+
+#first layer of the map
+world_map <- map_data("world")
+ggplot(world_map, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill="lightgray", colour = "black",size=0.1)
+
+#second layer of the map
+ggplot(data=All_data_tbl, aes(x=long, y=lat, group = group))+
+  geom_polygon(aes(fill = mortality_rate), color = "red",size=0.1)+
+  scale_fill_viridis_c(option = "C", alpha = 0.75 )
+
+  
+
+
 ```
 
