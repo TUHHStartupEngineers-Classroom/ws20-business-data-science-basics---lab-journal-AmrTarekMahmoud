@@ -270,6 +270,14 @@ patent_assignee_tbl <- vroom(
   na         = c("", "NA", "NULL")
 )
 
+
+
+
+
+
+
+
+
 col_types_uspc <- list(
   patent_id = col_character(),
   mainclass_id = col_number(),
