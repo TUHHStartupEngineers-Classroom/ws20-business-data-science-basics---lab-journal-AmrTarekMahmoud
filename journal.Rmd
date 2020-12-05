@@ -23,8 +23,7 @@ library(readxl)
 library(lubridate)
 library("writexl")
 ```
-##importing data
-### importing data
+## Importing data
 ```{r}
 bikes_tbl <- readxl:: read_excel(path = "DS_101/00_data/01_bike_sales/01_raw_data/bikes.xlsx")
 
